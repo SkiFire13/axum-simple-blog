@@ -4,8 +4,29 @@
         <title>Home</title>
     </head>
     <body>
-        <form>
-            <!-- TODO: form -->
+        <form action="/form" method="POST" enctype='multipart/form-data'>
+            <fieldset>
+                <legend>New blogpost:</legend>
+
+                <label for="blogpost-text">Blogpost text</label>:
+                <br/>
+                <textarea id="blogpost-text" name="text" required></textarea>
+                <br/>
+
+                <label for="blogpost-image">Blogpost image</label>:
+                <input type="file" id="blogpost-image" name="image" accept="image/png, image/jpeg"/>
+                <br/>
+
+                <label for="user-name">User name</label>:
+                <input type="text" id="user-name" name="user" size="40" required/>
+                <br/>
+
+                <label for="user-avatar">User avatar</label>:
+                <input type="url" id="user-avatar" name="avatar" placeholder="https://example.com/profile.png" pattern="https?://.*" size="40"/>
+                <br/>
+
+                <button type="submit">Submit</button>
+            </fieldset>
         </form>
 
         <!-- TODO: posts -->
