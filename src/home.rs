@@ -1,4 +1,5 @@
 use axum::{extract::State, response::Html};
+use minijinja::context;
 use serde::Serialize;
 
 use crate::AppState;
@@ -6,10 +7,10 @@ use crate::AppState;
 #[derive(Serialize)]
 struct Post {
     text: String,
-    data: String,
+    date: String,
     image: Option<String>,
     user: String,
-    user_image: Option<String>,
+    avatar: Option<String>,
 }
 
 pub async fn home(State(state): State<AppState>) -> Html<String> {
@@ -21,7 +22,7 @@ pub async fn home(State(state): State<AppState>) -> Html<String> {
         .env
         .get_template("home")
         .unwrap()
-        .render(posts)
+        .render(context!(posts => posts))
         .unwrap();
 
     Html(rendered)
