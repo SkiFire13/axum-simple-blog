@@ -5,6 +5,7 @@ use axum::{
     response::{Redirect, Result},
 };
 use reqwest::Client;
+use uuid::Uuid;
 
 use crate::AppState;
 
@@ -24,19 +25,35 @@ pub async fn form(State(state): State<AppState>, mut multipart: Multipart) -> Re
         }
     }
 
+    let uuid = Uuid::new_v4();
+
     let text = text.ok_or(StatusCode::BAD_REQUEST)?;
     let user = user.ok_or(StatusCode::BAD_REQUEST)?;
 
-    let avatar = match avatar_url {
-        Some(avatar) if avatar != "" => Some(
-            retrieve_avatar(&avatar, &state.client)
-                .await
-                .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?,
-        ),
-        _ => None,
-    };
+    let image_filename = format!("image-{uuid}.png");
+    let avatar_filename = format!("avatar-{uuid}.png");
 
-    dbg!(&text, &image, &user, &avatar);
+    if let Some(image) = &image {
+        // This is assuming that a file with the same path doesn't exist yet.
+        let path = state.image_dir.join(&image_filename);
+        tokio::fs::write(path, image)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
+
+    let avatar_url = avatar_url.filter(|avatar_url| !avatar_url.is_empty());
+    if let Some(avatar_url) = &avatar_url {
+        // TODO: Is BAD_REQUEST here correct?
+        let avatar = retrieve_avatar(&avatar_url, &state.client)
+            .await
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+        // This is assuming that a file with the same path doesn't exist yet.
+        let path = state.image_dir.join(&avatar_filename);
+        tokio::fs::write(path, avatar)
+            .await
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    }
 
     Ok(Redirect::to("/home"))
 }

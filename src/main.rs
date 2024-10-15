@@ -1,7 +1,7 @@
 mod form;
 mod home;
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use axum::{
     response::Redirect,
@@ -16,6 +16,7 @@ use home::home;
 
 const IP: &str = "0.0.0.0";
 const PORT: u16 = 3000;
+const IMAGES_DIR: &str = "data/images/";
 
 #[derive(Clone)]
 struct AppState {
@@ -23,6 +24,8 @@ struct AppState {
     env: Arc<Environment<'static>>,
     /// Reqwest client to resolve uploaded links
     client: Client,
+    /// Path in which to store images
+    image_dir: PathBuf,
 }
 
 #[tokio::main]
@@ -36,7 +39,16 @@ async fn main() {
     let state = AppState {
         env: Arc::new(env),
         client: Client::new(),
+        image_dir: PathBuf::from(IMAGES_DIR),
     };
+
+    if !state
+        .image_dir
+        .try_exists()
+        .expect("Couldn't determine if the image data dir exists")
+    {
+        std::fs::create_dir_all(&state.image_dir).expect("Couldn't create image data dir");
+    }
 
     // TODO: Setup routing for images
     let app = Router::new()
