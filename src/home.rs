@@ -20,16 +20,21 @@ struct Blogpost {
 }
 
 pub async fn home(State(state): State<AppState>) -> Result<Html<String>> {
+    log::info!("Received /home request");
+
     let blogposts = load_blogposts(&state.db_pool)
         .await
+        .inspect_err(|e| log::error!("failed to load blogposts: {e}"))
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     let rendered = state
         .template_env
         .get_template("home")
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
+        .inspect_err(|e| log::error!("failed to get template: {e}"))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
         .render(context!(blogposts => blogposts))
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .inspect_err(|e| log::error!("failed to render template: {e}"))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Html(rendered))
 }

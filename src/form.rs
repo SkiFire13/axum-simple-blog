@@ -13,6 +13,8 @@ use uuid::Uuid;
 use crate::AppState;
 
 pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result<Redirect> {
+    log::info!("Received /form request");
+
     let date = Utc::now();
     let uuid = Uuid::new_v4();
     let form = extract_form_field(multipart).await?;
@@ -25,10 +27,10 @@ pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result
     }
 
     if let Some(avatar_url) = &form.avatar_url {
-        // TODO: Is BAD_REQUEST here correct?
         let avatar = retrieve_avatar(&avatar_url, &state.client)
             .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+            .inspect_err(|e| log::error!("failed to load avatar image: {e:?}"))
+            .map_err(|_| (StatusCode::BAD_REQUEST, "Failed to load avatar image"))?;
 
         save_image_file(&avatar, &avatar_filename, &state.images_dir).await?;
     }
@@ -42,7 +44,8 @@ pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result
     )
     .execute(&state.db_pool)
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+    .inspect_err(|e| log::error!("failed to insert blogpost: {e}"))
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(Redirect::to("/home"))
 }
@@ -91,7 +94,8 @@ async fn save_image_file(image: &Bytes, image_filename: &str, image_dir: &Path) 
     // This is assuming that a file with the same path doesn't exist yet.
     tokio::fs::write(image_dir.join(&image_filename), image)
         .await
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+        .inspect_err(|e| log::error!("failed to save image file: {e}"))
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     Ok(())
 }
