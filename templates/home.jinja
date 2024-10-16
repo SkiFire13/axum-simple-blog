@@ -2,46 +2,104 @@
 <html lang="en">
     <head>
         <title>Home</title>
+
+        <style>
+            * {
+                font-family: sans-serif;
+            }
+            body {
+                max-width: 1000px;
+                margin: auto;
+            }
+            form {
+                margin: 20px;
+                border: 1px solid gray;
+                border-radius: 5px;
+                padding: 20px;
+            }
+            form > fieldset {
+                border: none;
+                padding: 0 0 10px 0;
+                display: grid;
+                grid-template-columns: auto 1fr;
+                grid-row-gap: 10px;
+                grid-column-gap: 10px;
+            }
+            form legend {
+                padding: 0 0 10px 0;
+                grid-column: span 2;
+                font-size: 24px;
+                font-weight: bold;
+            }
+            form > #submit {
+                display: block;
+                margin-left: auto;
+            }
+            textarea {
+                resize: vertical;
+            }
+
+            #blogposts {
+                list-style: none;
+                padding: 0 40px;
+            }
+            #blogposts li:not(:last-child) {
+                margin-bottom: 30px;
+            }
+            #blogposts .top {
+                display: flex;
+            }
+            #blogposts .user-avatar {
+                height: 1.5em;
+            }
+            #blogposts .date {
+                margin-left: auto;
+            }
+            #blogposts .image {
+                display: block;
+                margin: auto;
+            }
+        </style>
     </head>
     <body>
         <form action="/form" method="POST" enctype='multipart/form-data'>
             <fieldset>
-                <legend>New blogpost:</legend>
+                <legend>New blogpost</legend>
 
-                <label for="blogpost-text">Blogpost text</label>:
-                <br/>
-                <textarea id="blogpost-text" name="text" required></textarea>
-                <br/>
+                <label for="blogpost-text">Blogpost text:</label>
+                <textarea id="blogpost-text" name="text" required rows=6></textarea>
 
-                <label for="blogpost-image">Blogpost image</label>:
+                <label for="blogpost-image">Blogpost image:</label>
                 <input type="file" id="blogpost-image" name="image" accept="image/png"/>
-                <br/>
 
-                <label for="user-name">User name</label>:
-                <input type="text" id="user-name" name="user" size="40" required/>
-                <br/>
+                <label for="user-name">User name:</label>
+                <input type="text" id="user-name" name="user" required/>
 
-                <label for="user-avatar">User avatar</label>:
-                <input type="url" id="user-avatar" name="avatar" placeholder="https://example.com/profile.png" pattern="https?://.*" size="40"/>
-                <br/>
-
-                <button type="submit">Submit</button>
+                <label for="user-avatar">User avatar:</label>
+                <input type="url" id="user-avatar" name="avatar" placeholder="https://example.com/avatar.png" pattern="https?://.*"/>
             </fieldset>
+
+            <button type="submit" id="submit">Submit</button>
         </form>
 
-        <ul>
+        <ul id="blogposts">
             {% for blogpost in blogposts %}
             <li>
+                <div class="top">
+                    Author:
+
+                    {% if blogpost.avatar %}
+                    <img src="/images/{{ blogpost.avatar }}" alt="user avatar" class="user-avatar"/>
+                    {% endif %}
+
+                    <span>{{ blogpost.user|e }}</span>
+
+                    <span class="date">{{ blogpost.date|dateformat }}</span>
+                </div>
+
+
                 {% if blogpost.avatar %}
-                <span><img src="/images/{{ blogpost.avatar }}" alt="user avatar"/></span>
-                {% endif %}
-
-                <span>{{ blogpost.user|e }}</span>
-
-                <span>{{ blogpost.date|dateformat }}</span>
-
-                {% if blogpost.avatar %}
-                <img src="/images/{{ blogpost.image }}" alt=""/>
+                <img src="/images/{{ blogpost.image }}" alt="" class="image"/>
                 {% endif %}
 
                 <p>{{ blogpost.text|e }}</p>
