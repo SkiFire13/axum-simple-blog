@@ -1365,23 +1365,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rust-blog-example"
-version = "0.1.0"
-dependencies = [
- "axum",
- "chrono",
- "minijinja",
- "minijinja-contrib",
- "reqwest",
- "serde",
- "sqlx",
- "thiserror",
- "tokio",
- "tower-http",
- "uuid",
-]
-
-[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1588,6 +1571,23 @@ checksum = "77549399552de45a898a580c1b41d445bf730df867cc44e6c0233bbc4b8329de"
 dependencies = [
  "digest",
  "rand_core",
+]
+
+[[package]]
+name = "simple-blog"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "minijinja",
+ "minijinja-contrib",
+ "reqwest",
+ "serde",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tower-http",
+ "uuid",
 ]
 
 [[package]]
