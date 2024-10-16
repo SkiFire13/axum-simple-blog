@@ -11,7 +11,7 @@ use sqlx::SqlitePool;
 use crate::AppState;
 
 #[derive(Serialize)]
-struct Post {
+struct Blogpost {
     text: String,
     date: DateTime<Utc>,
     image: Option<String>,
@@ -34,9 +34,9 @@ pub async fn home(State(state): State<AppState>) -> Result<Html<String>> {
     Ok(Html(rendered))
 }
 
-async fn load_blogposts(db_pool: &SqlitePool) -> Result<Vec<Post>, sqlx::Error> {
+async fn load_blogposts(db_pool: &SqlitePool) -> Result<Vec<Blogpost>, sqlx::Error> {
     sqlx::query_as!(
-        Post,
+        Blogpost,
         r#"
             SELECT date AS "date: _", text, image, user, avatar
             FROM blogposts
