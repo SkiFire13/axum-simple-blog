@@ -10,10 +10,11 @@ use axum::{
 };
 use minijinja::Environment;
 use reqwest::Client;
+use sqlx::SqlitePool;
+use tower_http::services::ServeDir;
 
 use form::form;
 use home::home;
-use sqlx::SqlitePool;
 
 const IP: &str = "0.0.0.0";
 const PORT: u16 = 3000;
@@ -65,6 +66,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/home") }))
         .route("/home", get(home))
         .route("/form", post(form))
+        .nest_service("/images", ServeDir::new(&state.image_dir))
         .with_state(state);
 
     let listener = tokio::net::TcpListener::bind((IP, PORT)).await.unwrap();

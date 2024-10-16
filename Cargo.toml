@@ -12,4 +12,5 @@ serde = { version = "1.0.210", features = ["derive"] }
 sqlx = { version = "0.8.2", features = ["chrono", "sqlite", "uuid"] }
 thiserror = "1.0.64"
 tokio = { version = "1.40.0", features = ["fs", "rt-multi-thread"] }
+tower-http = { version = "0.6.1", features = ["fs"] }
 uuid = { version = "1.10.0", features = ["v4"] }
