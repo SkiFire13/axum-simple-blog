@@ -19,7 +19,7 @@ use home::home;
 const IP: &str = "0.0.0.0";
 const PORT: u16 = 3000;
 const IMAGES_DIR: &str = "data/images/";
-const DB_PATH: &str = "data/db.sqlite";
+const DB_PATH: &str = "sqlite://data/db.sqlite?mode=rwc";
 
 #[derive(Clone)]
 struct AppState {
@@ -45,6 +45,11 @@ async fn main() {
     let db_pool = SqlitePool::connect(DB_PATH)
         .await
         .expect("Couldn't connect to the database");
+
+    sqlx::migrate!()
+        .run(&db_pool)
+        .await
+        .expect("Couldn't migrate");
 
     let state = AppState {
         db_pool,
