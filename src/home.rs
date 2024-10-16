@@ -25,7 +25,7 @@ pub async fn home(State(state): State<AppState>) -> Result<Html<String>> {
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
     let rendered = state
-        .env
+        .template_env
         .get_template("home")
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?
         .render(context!(blogposts => blogposts))

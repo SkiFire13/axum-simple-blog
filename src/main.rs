@@ -26,7 +26,7 @@ struct AppState {
     /// Connection pool to the SQLite database
     db_pool: SqlitePool,
     /// Jinja environment for templates
-    env: Arc<Environment<'static>>,
+    template_env: Arc<Environment<'static>>,
     /// Reqwest client to resolve uploaded links
     client: Client,
     /// Path in which to store images
@@ -53,7 +53,7 @@ async fn main() {
 
     let state = AppState {
         db_pool,
-        env: Arc::new(env),
+        template_env: Arc::new(env),
         client: Client::new(),
         image_dir: PathBuf::from(IMAGES_DIR),
     };
