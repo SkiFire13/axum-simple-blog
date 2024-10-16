@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO blogposts (id, date, text, image, user, avatar) VALUES ($1, $2, $3, $4, $5, $6)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 6
+    },
+    "nullable": []
+  },
+  "hash": "130d0eeb92344da7fadbdd1ad7db7a689c65a2581d1bd09fbafbd8cfb2f17c66"
+}

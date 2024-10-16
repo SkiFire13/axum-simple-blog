@@ -1,15 +1,60 @@
+use std::path::Path;
+
 use axum::{
     body::Bytes,
     extract::{Multipart, State},
     http::StatusCode,
     response::{Redirect, Result},
 };
+use chrono::Utc;
 use reqwest::Client;
 use uuid::Uuid;
 
 use crate::AppState;
 
-pub async fn form(State(state): State<AppState>, mut multipart: Multipart) -> Result<Redirect> {
+pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result<Redirect> {
+    let date = Utc::now();
+    let uuid = Uuid::new_v4();
+    let form = extract_form_field(multipart).await?;
+
+    let image_filename = format!("image-{uuid}.png");
+    let avatar_filename = format!("avatar-{uuid}.png");
+
+    if let Some(image) = &form.image {
+        save_image_file(image, &image_filename, &state.image_dir).await?;
+    }
+
+    if let Some(avatar_url) = &form.avatar_url {
+        // TODO: Is BAD_REQUEST here correct?
+        let avatar = retrieve_avatar(&avatar_url, &state.client)
+            .await
+            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
+
+        save_image_file(&avatar, &avatar_filename, &state.image_dir).await?;
+    }
+
+    let image_file = form.image.is_some().then(|| image_filename);
+    let avatar_file = form.avatar_url.is_some().then(|| avatar_filename);
+
+    sqlx::query!(
+        "INSERT INTO blogposts (id, date, text, image, user, avatar) VALUES ($1, $2, $3, $4, $5, $6)",
+        uuid, date, form.text, image_file, form.user, avatar_file
+    )
+    .execute(&state.db_pool)
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(Redirect::to("/home"))
+}
+
+struct Form {
+    text: String,
+    image: Option<Bytes>,
+    user: String,
+    avatar_url: Option<String>,
+}
+
+async fn extract_form_field(mut multipart: Multipart) -> Result<Form> {
     let mut text = None;
     let mut image = None;
     let mut user = None;
@@ -25,37 +70,23 @@ pub async fn form(State(state): State<AppState>, mut multipart: Multipart) -> Re
         }
     }
 
-    let uuid = Uuid::new_v4();
-
-    let text = text.ok_or(StatusCode::BAD_REQUEST)?;
-    let user = user.ok_or(StatusCode::BAD_REQUEST)?;
-
-    let image_filename = format!("image-{uuid}.png");
-    let avatar_filename = format!("avatar-{uuid}.png");
-
-    if let Some(image) = &image {
-        // This is assuming that a file with the same path doesn't exist yet.
-        let path = state.image_dir.join(&image_filename);
-        tokio::fs::write(path, image)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    }
-
+    let text = text.filter(|text| !text.is_empty()).ok_or(StatusCode::BAD_REQUEST)?;
+    let image = image.filter(|image| !image.is_empty());
+    let user = user.filter(|user| !user.is_empty()).ok_or(StatusCode::BAD_REQUEST)?;
     let avatar_url = avatar_url.filter(|avatar_url| !avatar_url.is_empty());
-    if let Some(avatar_url) = &avatar_url {
-        // TODO: Is BAD_REQUEST here correct?
-        let avatar = retrieve_avatar(&avatar_url, &state.client)
-            .await
-            .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        // This is assuming that a file with the same path doesn't exist yet.
-        let path = state.image_dir.join(&avatar_filename);
-        tokio::fs::write(path, avatar)
-            .await
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
-    }
+    Ok(Form {
+        text, image, user, avatar_url
+    })
+}
 
-    Ok(Redirect::to("/home"))
+async fn save_image_file(image: &Bytes, image_filename: &str, image_dir: &Path) -> Result<()> {
+    // This is assuming that a file with the same path doesn't exist yet.
+    tokio::fs::write(image_dir.join(&image_filename), image)
+        .await
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+    Ok(())
 }
 
 async fn retrieve_avatar(url: &str, client: &Client) -> Result<Bytes, reqwest::Error> {

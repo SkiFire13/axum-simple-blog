@@ -13,13 +13,17 @@ use reqwest::Client;
 
 use form::form;
 use home::home;
+use sqlx::SqlitePool;
 
 const IP: &str = "0.0.0.0";
 const PORT: u16 = 3000;
 const IMAGES_DIR: &str = "data/images/";
+const DB_PATH: &str = "data/db.sqlite";
 
 #[derive(Clone)]
 struct AppState {
+    /// Connection pool to the SQLite database
+    db_pool: SqlitePool,
     /// Jinja environment for templates
     env: Arc<Environment<'static>>,
     /// Reqwest client to resolve uploaded links
@@ -36,7 +40,12 @@ async fn main() {
     env.add_template("home", include_str!("../templates/home.jinja"))
         .expect("Embedded template is invalid");
 
+    let db_pool = SqlitePool::connect(DB_PATH)
+        .await
+        .expect("Couldn't connect to the database");
+
     let state = AppState {
+        db_pool,
         env: Arc::new(env),
         client: Client::new(),
         image_dir: PathBuf::from(IMAGES_DIR),
