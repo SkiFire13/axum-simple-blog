@@ -36,7 +36,7 @@
                 <span><img src="/images/{{ blogpost.avatar }}" alt="user avatar"/></span>
                 {% endif %}
 
-                <span>{{ blogpost.user }}</span>
+                <span>{{ blogpost.user|e }}</span>
 
                 <span>{{ blogpost.date|dateformat }}</span>
 
@@ -44,7 +44,7 @@
                 <img src="/images/{{ blogpost.image }}" alt=""/>
                 {% endif %}
 
-                <p>{{ blogpost.text }}</p>
+                <p>{{ blogpost.text|e }}</p>
             </li>
             {% endfor %}
         </ul>
