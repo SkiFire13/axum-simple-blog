@@ -51,12 +51,13 @@ async fn main() {
         image_dir: PathBuf::from(IMAGES_DIR),
     };
 
-    if !state
-        .image_dir
-        .try_exists()
+    if !tokio::fs::try_exists(&state.image_dir)
+        .await
         .expect("Couldn't determine if the image data dir exists")
     {
-        std::fs::create_dir_all(&state.image_dir).expect("Couldn't create image data dir");
+        tokio::fs::create_dir_all(&state.image_dir)
+            .await
+            .expect("Couldn't create image data dir");
     }
 
     // TODO: Setup routing for images
