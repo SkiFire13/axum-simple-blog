@@ -29,6 +29,24 @@
             </fieldset>
         </form>
 
-        <!-- TODO: posts -->
+        <ul>
+            {% for blogpost in blogposts %}
+            <li>
+                {% if blogpost.avatar %}
+                <span><img src="/images/{{ blogpost.avatar }}" alt="user avatar"/></span>
+                {% endif %}
+
+                <span>{{ blogpost.user }}</span>
+
+                <span>{{ blogpost.date|dateformat }}</span>
+
+                {% if blogpost.avatar %}
+                <img src="/images/{{ blogpost.image }}" alt=""/>
+                {% endif %}
+
+                <p>{{ blogpost.text }}</p>
+            </li>
+            {% endfor %}
+        </ul>
     </body>
 </html>

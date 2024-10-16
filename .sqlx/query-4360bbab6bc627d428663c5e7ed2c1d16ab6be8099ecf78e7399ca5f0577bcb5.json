@@ -1,0 +1,44 @@
+{
+  "db_name": "SQLite",
+  "query": "\n            SELECT date AS \"date: _\", text, image, user, avatar\n            FROM blogposts\n            ORDER BY date DESC\n        ",
+  "describe": {
+    "columns": [
+      {
+        "name": "date: _",
+        "ordinal": 0,
+        "type_info": "Datetime"
+      },
+      {
+        "name": "text",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "image",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "user",
+        "ordinal": 3,
+        "type_info": "Text"
+      },
+      {
+        "name": "avatar",
+        "ordinal": 4,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      true
+    ]
+  },
+  "hash": "4360bbab6bc627d428663c5e7ed2c1d16ab6be8099ecf78e7399ca5f0577bcb5"
+}

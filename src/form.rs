@@ -70,13 +70,20 @@ async fn extract_form_field(mut multipart: Multipart) -> Result<Form> {
         }
     }
 
-    let text = text.filter(|text| !text.is_empty()).ok_or(StatusCode::BAD_REQUEST)?;
+    let text = text
+        .filter(|text| !text.is_empty())
+        .ok_or(StatusCode::BAD_REQUEST)?;
     let image = image.filter(|image| !image.is_empty());
-    let user = user.filter(|user| !user.is_empty()).ok_or(StatusCode::BAD_REQUEST)?;
+    let user = user
+        .filter(|user| !user.is_empty())
+        .ok_or(StatusCode::BAD_REQUEST)?;
     let avatar_url = avatar_url.filter(|avatar_url| !avatar_url.is_empty());
 
     Ok(Form {
-        text, image, user, avatar_url
+        text,
+        image,
+        user,
+        avatar_url,
     })
 }
 

@@ -38,6 +38,7 @@ async fn main() {
     // TODO: Setup logging
 
     let mut env = Environment::new();
+    env.add_filter("dateformat", minijinja_contrib::filters::dateformat);
     env.add_template("home", include_str!("../templates/home.jinja"))
         .expect("Embedded template is invalid");
 

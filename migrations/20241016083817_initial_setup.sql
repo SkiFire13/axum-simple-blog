@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS blogposts (
     id UUID PRIMARY KEY,
-    date DATE NOT NULL,
+    date DATETIME NOT NULL,
     text TEXT NOT NULL,
     image TEXT,
     user TEXT NOT NULL,
