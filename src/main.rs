@@ -1,7 +1,7 @@
 mod form;
 mod home;
 
-use std::{path::PathBuf, sync::Arc};
+use std::{path::{PathBuf, Path}, sync::Arc};
 
 use axum::{
     response::Redirect,
@@ -10,16 +10,11 @@ use axum::{
 };
 use minijinja::Environment;
 use reqwest::Client;
-use sqlx::SqlitePool;
+use sqlx::{SqlitePool, sqlite::SqliteConnectOptions};
 use tower_http::services::ServeDir;
 
 use form::form;
 use home::home;
-
-const IP: &str = "0.0.0.0";
-const PORT: u16 = 3000;
-const IMAGES_DIR: &str = "data/images/";
-const DB_PATH: &str = "sqlite://data/db.sqlite?mode=rwc";
 
 #[derive(Clone)]
 struct AppState {
@@ -30,52 +25,70 @@ struct AppState {
     /// Reqwest client to resolve uploaded links
     client: Client,
     /// Path in which to store images
-    image_dir: PathBuf,
+    images_dir: PathBuf,
 }
+
+// Default values for the environment variables
+const IP: &str = "0.0.0.0";
+const PORT: u16 = 80;
+const DATA_DIR: &str = "data/";
+const IMAGES_DIR: &str = "images/";
+const DB_NAME: &str = "db.sqlite";
 
 #[tokio::main]
 async fn main() {
+    let ip = std::env::var("BLOG_IP").unwrap_or_else(|_| IP.to_string());
+    let port = std::env::var("BLOG_PORT").unwrap_or_else(|_| PORT.to_string());
+    let data_dir = std::env::var("BLOG_DATA_DIR").unwrap_or_else(|_| DATA_DIR.to_string());
+    let images_dir = std::env::var("BLOG_IMAGES_DIR").unwrap_or_else(|_| IMAGES_DIR.to_string());
+    let db_name = std::env::var("BLOG_DB_NAME").unwrap_or_else(|_| DB_NAME.to_string());
+
     // TODO: Setup logging
 
-    let mut env = Environment::new();
-    env.add_filter("dateformat", minijinja_contrib::filters::dateformat);
-    env.add_template("home", include_str!("../templates/home.jinja"))
-        .expect("Embedded template is invalid");
-
-    let db_pool = SqlitePool::connect(DB_PATH)
+    // Ensure the data directory exists
+    tokio::fs::create_dir_all(&data_dir)
         .await
-        .expect("Couldn't connect to the database");
+        .expect("failed to create data dir");
 
+    // Setup the template environment
+    let mut template_env = Environment::new();
+    template_env.add_filter("dateformat", minijinja_contrib::filters::dateformat);
+    template_env.add_template("home", include_str!("../templates/home.jinja"))
+        .expect("embedded template is invalid");
+
+    // Setup the database connection and migrations
+    let db_conn_opts = SqliteConnectOptions::new()
+        .filename(Path::new(&data_dir).join(db_name))
+        .create_if_missing(true);
+    let db_pool = SqlitePool::connect_with(db_conn_opts)
+        .await
+        .expect("failed to connect to the database");
     sqlx::migrate!()
         .run(&db_pool)
         .await
-        .expect("Couldn't migrate");
+        .expect("failed to apply migrations to the database");
 
     let state = AppState {
         db_pool,
-        template_env: Arc::new(env),
+        template_env: Arc::new(template_env),
         client: Client::new(),
-        image_dir: PathBuf::from(IMAGES_DIR),
+        images_dir: Path::new(&data_dir).join(images_dir),
     };
 
-    if !tokio::fs::try_exists(&state.image_dir)
+    // Ensure the images directory exists
+    tokio::fs::create_dir_all(&state.images_dir)
         .await
-        .expect("Couldn't determine if the image data dir exists")
-    {
-        tokio::fs::create_dir_all(&state.image_dir)
-            .await
-            .expect("Couldn't create image data dir");
-    }
+        .expect("failed to create images dir");
 
-    // TODO: Setup routing for images
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/home") }))
         .route("/home", get(home))
         .route("/form", post(form))
-        .nest_service("/images", ServeDir::new(&state.image_dir))
+        .nest_service("/images", ServeDir::new(&state.images_dir))
         .with_state(state);
 
-    let listener = tokio::net::TcpListener::bind((IP, PORT)).await.unwrap();
+    let port = port.parse::<u16>().expect("failed to parse PORT");
+    let listener = tokio::net::TcpListener::bind((&*ip, port)).await.unwrap();
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

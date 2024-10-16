@@ -21,7 +21,7 @@ pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result
     let avatar_filename = format!("avatar-{uuid}.png");
 
     if let Some(image) = &form.image {
-        save_image_file(image, &image_filename, &state.image_dir).await?;
+        save_image_file(image, &image_filename, &state.images_dir).await?;
     }
 
     if let Some(avatar_url) = &form.avatar_url {
@@ -30,7 +30,7 @@ pub async fn form(State(state): State<AppState>, multipart: Multipart) -> Result
             .await
             .map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
-        save_image_file(&avatar, &avatar_filename, &state.image_dir).await?;
+        save_image_file(&avatar, &avatar_filename, &state.images_dir).await?;
     }
 
     let image_file = form.image.is_some().then(|| image_filename);
