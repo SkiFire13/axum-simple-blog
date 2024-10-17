@@ -31,36 +31,24 @@ struct AppState {
     images_dir: PathBuf,
 }
 
-// Default values for the environment variables
-const IP: &str = "0.0.0.0";
-const PORT: u16 = 80;
-const IMAGES_DIR_PATH: &str = "data/images/";
-const DB_PATH: &str = "data/db.sqlite";
-
 #[tokio::main]
 async fn main() {
+    let ip = "0.0.0.0";
+    let port = 80;
+    let images_dir_path = Path::new("data/images/");
+    let db_path = Path::new("data/db.sqlite");
+
     env_logger::init();
 
-    let ip = std::env::var("BLOG_IP").unwrap_or_else(|_| IP.to_string());
-    let port = std::env::var("BLOG_PORT").unwrap_or_else(|_| PORT.to_string());
-    let images_dir_path =
-        std::env::var("BLOG_IMAGES_DIR").unwrap_or_else(|_| IMAGES_DIR_PATH.to_string());
-    let db_path = std::env::var("BLOG_DB_NAME").unwrap_or_else(|_| DB_PATH.to_string());
-
-    log::info!("ip = {ip}");
-    log::info!("port = {port}");
-    log::info!("images_dir_path = {images_dir_path}");
-    log::info!("db_path = {db_path}");
-
     let template_env = Arc::new(setup_template_env());
-    let db_pool = setup_sqlite_database(Path::new(&db_path)).await;
-    setup_images_directory(Path::new(&images_dir_path)).await;
+    let db_pool = setup_sqlite_database(db_path).await;
+    setup_images_directory(images_dir_path).await;
 
     let state = AppState {
         db_pool,
         template_env,
         client: Client::new(),
-        images_dir: PathBuf::from(images_dir_path),
+        images_dir: images_dir_path.to_owned(),
     };
 
     let app = Router::new()
@@ -71,8 +59,7 @@ async fn main() {
         .with_state(state);
 
     log::info!("Starting network listener");
-    let port = port.parse::<u16>().expect("failed to parse PORT");
-    let listener = tokio::net::TcpListener::bind((&*ip, port))
+    let listener = tokio::net::TcpListener::bind((ip, port))
         .await
         .expect("failed to bind network listener");
 
