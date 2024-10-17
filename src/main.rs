@@ -52,42 +52,13 @@ async fn main() {
     log::info!("images_dir_path = {images_dir_path}");
     log::info!("db_path = {db_path}");
 
-    // Setup the template environment
-    log::info!("Initializing template environment");
-    let mut template_env = Environment::new();
-    template_env.add_filter("dateformat", minijinja_contrib::filters::dateformat);
-    template_env
-        .add_template("home", include_str!("../templates/home.jinja"))
-        .expect("embedded template is invalid");
-
-    // Setup the database connection and migrations
-    log::info!("Initializing SQLite database");
-    if let Some(db_dir) = Path::new(&db_path).parent() {
-        tokio::fs::create_dir_all(db_dir)
-            .await
-            .expect("failed to create db dir");
-    }
-    let db_conn_opts = SqliteConnectOptions::new()
-        .filename(Path::new(&db_path))
-        .create_if_missing(true);
-    let db_pool = SqlitePool::connect_with(db_conn_opts)
-        .await
-        .expect("failed to connect to the database");
-    log::info!("Migrating SQLite database");
-    sqlx::migrate!()
-        .run(&db_pool)
-        .await
-        .expect("failed to apply migrations to the database");
-
-    // Ensure the images directory exists
-    log::info!("Initializing images directory");
-    tokio::fs::create_dir_all(&images_dir_path)
-        .await
-        .expect("failed to create images dir");
+    let template_env = Arc::new(setup_template_env());
+    let db_pool = setup_sqlite_database(Path::new(&db_path)).await;
+    setup_images_directory(Path::new(&images_dir_path)).await;
 
     let state = AppState {
         db_pool,
-        template_env: Arc::new(template_env),
+        template_env,
         client: Client::new(),
         images_dir: PathBuf::from(images_dir_path),
     };
@@ -105,12 +76,52 @@ async fn main() {
         .await
         .expect("failed to bind network listener");
 
-    log::info!("Starting website");
+    log::info!("Starting service");
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
-        .expect("failed to serve website");
+        .expect("failed to serve");
     log::info!("Stopped");
+}
+
+fn setup_template_env() -> Environment<'static> {
+    log::info!("Initializing template environment");
+    let mut template_env = Environment::new();
+    template_env.add_filter("dateformat", minijinja_contrib::filters::dateformat);
+    template_env
+        .add_template("home", include_str!("../templates/home.jinja"))
+        .expect("embedded template is invalid");
+
+    template_env
+}
+
+async fn setup_sqlite_database(db_path: &Path) -> SqlitePool {
+    log::info!("Initializing SQLite database");
+    if let Some(db_dir) = db_path.parent() {
+        tokio::fs::create_dir_all(db_dir)
+            .await
+            .expect("failed to create db dir");
+    }
+    let db_conn_opts = SqliteConnectOptions::new()
+        .filename(db_path)
+        .create_if_missing(true);
+    let db_pool = SqlitePool::connect_with(db_conn_opts)
+        .await
+        .expect("failed to connect to the database");
+    log::info!("Migrating SQLite database");
+    sqlx::migrate!()
+        .run(&db_pool)
+        .await
+        .expect("failed to apply migrations to the database");
+    db_pool
+}
+
+async fn setup_images_directory(images_dir_path: &Path) {
+    // Ensure the images directory exists
+    log::info!("Initializing images directory");
+    tokio::fs::create_dir_all(&images_dir_path)
+        .await
+        .expect("failed to create images dir");
 }
 
 async fn shutdown_signal() {
