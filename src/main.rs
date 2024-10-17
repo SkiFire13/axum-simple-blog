@@ -66,7 +66,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/home") }))
         .route("/home", get(home))
-        .route("/form", post(form))
+        .route("/home", post(form))
         .nest_service("/images", ServeDir::new(&state.images_dir))
         .with_state(state);
 
